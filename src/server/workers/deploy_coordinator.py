@@ -19,31 +19,31 @@
     - 无。公开接口通过简单数据类型进行交互，不需要键值对模型。
 """
 
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Optional
 import os
 
 # 导入配置
-from config import API_BASE_URL
+from src.server.config import API_BASE_URL
 
 # 动态导入客户端模块，避免在模块缺失时直接崩溃
 try:
-    from cert_client import CertificateClient
+    from src.server.cert_client import CertificateClient
 except ImportError:
     CertificateClient = None
 
 try:
-    from asset_client import AssetClient
+    from src.server.asset_client import AssetClient
 except ImportError:
     AssetClient = None
 
-from workers.cert_utils import copy_ssl_certificates, overlay_lightnode_certificates
-from workers.lightnode_builder import LightnodeBuilder
+from .cert_utils import copy_ssl_certificates, overlay_lightnode_certificates
+from .lightnode_builder import LightnodeBuilder
 
 
 class DeployCoordinator:
     """协调一键部署流程的类"""
     
-    def __init__(self, progress_callback: Callable[[str], None] = None):
+    def __init__(self, progress_callback: Optional[Callable[[str], None]] = None):
         """
         初始化部署协调器
         
@@ -87,6 +87,8 @@ class DeployCoordinator:
         
         # 步骤 1: 申请和下载证书
         def cert_step():
+            if CertificateClient is None:
+                return False, "证书客户端模块未正确导入"
             cert_client = CertificateClient(api_base_url=api_url)
             return cert_client.issue_new_certificate(
                 output_dir=output_dir,
@@ -100,6 +102,8 @@ class DeployCoordinator:
 
         # 步骤 2: 下载 build_chain.sh
         def script_step():
+            if AssetClient is None:
+                return False, "资源客户端模块未正确导入"
             asset_client = AssetClient(api_base_url=api_url)
             return asset_client.download_build_script(output_dir)
 
@@ -110,6 +114,8 @@ class DeployCoordinator:
 
         # 步骤 3: 直接下载二进制（fisco-bcos 与 fisco-bcos-lightnode）
         def binaries_step():
+            if AssetClient is None:
+                return False, "资源客户端模块未正确导入"
             asset_client = AssetClient(api_base_url=api_url)
             return asset_client.download_binaries(output_dir)
 
@@ -149,6 +155,8 @@ class DeployCoordinator:
 
         # 步骤 7: 下载并覆盖 config.genesis 与 nodes.json 到 lightnode/
         def chain_assets_step():
+            if AssetClient is None:
+                return False, "资源客户端模块未正确导入"
             asset_client = AssetClient(api_base_url=api_url)
             ln_dir = os.path.join(output_dir, "lightnode")
             s1, m1 = asset_client.download_genesis(ln_dir)
