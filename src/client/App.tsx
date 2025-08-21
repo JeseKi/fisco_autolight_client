@@ -22,13 +22,14 @@ function App() {
   const [isNodeRunning, setIsNodeRunning] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
 
-  const logContainerRef = useRef<HTMLTextAreaElement>(null);
+  const logContainerRef = useRef<any>(null);
 
   // 自动滚动日志
   useEffect(() => {
     if (logContainerRef.current) {
-      const textarea = logContainerRef.current.resizableTextArea?.textArea;
-      if (textarea) {
+      // 对于 antd TextArea，我们需要访问实际的 textarea 元素
+      const textarea = logContainerRef.current.resizableTextArea?.textArea || logContainerRef.current.textArea || logContainerRef.current;
+      if (textarea && textarea instanceof HTMLTextAreaElement) {
         textarea.scrollTop = textarea.scrollHeight;
       }
     }
@@ -185,13 +186,14 @@ function App() {
             </div>
 
             {/* Right Column: Logs */}
-            <Card title="日志输出" className="md:col-span-1">
+            <Card title="日志输出" className="md:col-span-1" style={{ minHeight : 600}}>
               <TextArea
                 ref={logContainerRef}
                 readOnly
                 value={logs.join('\n')}
                 className="h-96 font-mono text-xs"
                 placeholder="日志输出..."
+                style={{ minHeight : 600}}
               />
             </Card>
           </div>

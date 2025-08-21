@@ -39,6 +39,9 @@ except ImportError:
 from .cert_utils import copy_ssl_certificates, overlay_lightnode_certificates
 from .lightnode_builder import LightnodeBuilder
 
+# 导入控制台部署服务
+from src.server.service.console_deploy import deploy_console
+
 
 class DeployCoordinator:
     """协调一键部署流程的类"""
@@ -171,6 +174,22 @@ class DeployCoordinator:
         if not success:
             return False, f"链配置下载失败: {message}"
         self._report_progress(f"[SUCCESS] {message}")
+
+        # 步骤 8: 部署控制台
+        def console_deploy_step():
+            try:
+                self._report_progress("正在部署控制台...")
+                deploy_console(api_url=api_url, node_id=node_id) # 默认使用 20200 端口
+                return True, "控制台部署成功"
+            except Exception as e:
+                return False, f"控制台部署失败: {str(e)}"
+        
+        success, message = self._run_step("[8/8] 正在部署控制台...", console_deploy_step)
+        if not success:
+            # 这里可以选择是否将整个部署标记为失败，暂时只记录错误
+            self._report_progress(f"[WARN] {message}")
+        else:
+            self._report_progress(f"[SUCCESS] {message}")
 
         return True, "一键部署成功完成！"
 

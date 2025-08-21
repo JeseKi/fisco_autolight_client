@@ -32,3 +32,5 @@ last_session.json
 main.spec
 build
 dist
+console.tar.gz
+console

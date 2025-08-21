@@ -27,9 +27,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 # 导入现有的业务逻辑模块
-from workers.deploy_coordinator import DeployCoordinator
-from workers.schemas import NodeStatus
-from config import API_BASE_URL
+from src.server.workers.deploy_coordinator import DeployCoordinator
+from src.server.workers.schemas import NodeStatus
+from src.server.config import API_BASE_URL
 
 # --- 应用和状态管理 ---
 

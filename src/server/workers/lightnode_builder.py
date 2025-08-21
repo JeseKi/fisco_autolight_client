@@ -141,6 +141,28 @@ class LightnodeBuilder:
                 # 回退到 copytree（跨设备/权限问题时）
                 shutil.copytree(src_lightnode, dst_lightnode, dirs_exist_ok=True)
 
+            # 拷贝SDK目录
+            # 查找nodes目录下的sdk目录
+            sdk_src_dir = None
+            for root, dirs, _files in os.walk(nodes_root):
+                if "sdk" in dirs:
+                    sdk_src_dir = os.path.join(root, "sdk")
+                    break
+            
+            if sdk_src_dir and os.path.isdir(sdk_src_dir):
+                sdk_dst_dir = os.path.join(dst_lightnode, "sdk")
+                # 如果目标sdk目录已存在，先删除
+                if os.path.exists(sdk_dst_dir):
+                    shutil.rmtree(sdk_dst_dir, ignore_errors=True)
+                try:
+                    shutil.copytree(sdk_src_dir, sdk_dst_dir)
+                    print(f"SDK目录已拷贝: {sdk_src_dir} -> {sdk_dst_dir}")
+                except Exception as e:
+                    print(f"拷贝SDK目录失败: {e}")
+                    # 即使拷贝失败，也不应该中断整个流程
+            else:
+                print("未找到SDK目录")
+
             # 确保 start/stop/lightnode 可执行
             for name in ("start.sh", "stop.sh", "fisco-bcos-lightnode"):
                 p = os.path.join(dst_lightnode, name)
