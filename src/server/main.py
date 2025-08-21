@@ -75,16 +75,35 @@ class AppState:
                 data = json.load(f)
             self.deployed_node_id = data.get("deployed_node_id")
             self.node_pid = data.get("node_pid")
+            
+            # 验证节点是否仍然存在且有效
+            if self.deployed_node_id and not is_node_deployed(self.current_node_dir):
+                self.deployed_node_id = None
+                self.node_pid = None
         except Exception as e:
             print(f"[WARN] 读取会话信息失败: {e}")
 
+    def get_real_node_id(self) -> Optional[str]:
+        """从 node.nodeid 文件中获取真实的节点 ID"""
+        try:
+            node_id_file = Path(self.current_node_dir) / "lightnode" / "conf" / "node.nodeid"
+            if node_id_file.exists():
+                with open(node_id_file, "r") as f:
+                    return f.readline().strip()
+        except Exception as e:
+            print(f"[WARN] 读取节点 ID 失败: {e}")
+        return None
+
     def save_session(self):
         try:
-            with open(Path.cwd() / "node" / "lightnode" / "conf" / "node.nodeid", "r") as f:
-                node_id = f.readline()
+            # 获取真实的节点 ID
+            real_node_id = self.get_real_node_id()
+            if real_node_id:
+                # 更新内存中的 deployed_node_id
+                self.deployed_node_id = real_node_id
             state = {
                 "current_node_dir": self.current_node_dir,
-                "deployed_node_id": node_id,
+                "deployed_node_id": self.deployed_node_id,
                 "node_pid": self.node_pid,
             }
             with open(self._state_path(), "w", encoding="utf-8") as f:
@@ -108,6 +127,12 @@ def is_pid_alive(pid: Optional[int]) -> bool:
         return True
     except (OSError, ProcessLookupError):
         return False
+
+def is_node_deployed(node_dir: str) -> bool:
+    """检查节点是否已部署"""
+    lightnode_dir = os.path.join(node_dir, "lightnode")
+    node_id_file = os.path.join(lightnode_dir, "conf", "node.nodeid")
+    return os.path.exists(lightnode_dir) and os.path.exists(node_id_file)
 
 state = AppState()
 
@@ -261,16 +286,22 @@ async def stop_node():
 
 @app.get("/api/status", response_model=NodeStatus, summary="获取节点状态(Mock)")
 def get_status():
+    # 检查节点是否已部署
+    if not is_node_deployed(state.current_node_dir):
+        return NodeStatus(block_height=-1, node_id="请先部署节点", p2p_connection_count=0, running=False)
+    
     # 使用 PID 检查节点是否在运行
     is_running = is_pid_alive(state.node_pid)
     if is_running:
-        return NodeStatus(block_height=-1, node_id=state.deployed_node_id or "请先启动/部署节点", p2p_connection_count=0, running=True)
+        node_id = state.deployed_node_id or "请先启动/部署节点"
+        return NodeStatus(block_height=-1, node_id=node_id, p2p_connection_count=0, running=True)
     else:
         # 如果 PID 无效，则清理它
         if state.node_pid is not None:
             state.node_pid = None
             state.save_session()
-        return NodeStatus(block_height=-1, node_id=state.deployed_node_id or "请先启动/部署节点", p2p_connection_count=0, running=False)
+        node_id = state.deployed_node_id or "请先启动/部署节点"
+        return NodeStatus(block_height=-1, node_id=node_id, p2p_connection_count=0, running=False)
 
 @app.get("/api/session", summary="获取当前会话信息")
 def get_session():
