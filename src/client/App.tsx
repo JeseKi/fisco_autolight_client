@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Input, Button, Card, Typography, Space, message, Spin } from 'antd';
 import axios from 'axios';
+import ConsoleTerminal from './ConsoleTerminal';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -185,17 +186,20 @@ function App() {
               </Card>
             </div>
 
-            {/* Right Column: Logs */}
-            <Card title="日志输出" className="md:col-span-1" style={{ minHeight : 600}}>
+            {/* Right Column: Logs + Console */}
+            <Card title="日志输出" className="md:col-span-1">
               <TextArea
                 ref={logContainerRef}
                 readOnly
                 value={logs.join('\n')}
                 className="h-96 font-mono text-xs"
                 placeholder="日志输出..."
-                style={{ minHeight : 600}}
+                style={{ minHeight : 300}}
               />
             </Card>
+            <div className="md:col-span-2">
+              <ConsoleTerminal apiBaseUrl={API_URL} height={360}/>
+            </div>
           </div>
         </div>
       </Spin>

@@ -51,6 +51,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- WebSocket 交互控制台 ---
+try:
+    from service.terminal_ws import router as terminal_router  # 延迟导入，避免在缺少依赖时阻塞其它 API
+    app.include_router(terminal_router)
+except Exception as e:  # pragma: no cover
+    print(f"[WARN] 交互控制台未启用: {e}")
+
 # 定义固定的节点目录
 NODE_DIR = str(get_node_dir())
 

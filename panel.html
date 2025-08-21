@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+<head>
+    <title>Web Terminal for FISCO BCOS</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            margin: 0;
+            padding: 15px;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        h1 {
+            margin-top: 0;
+        }
+        #terminal-container {
+            width: 100%;
+            height: calc(100vh - 80px); /* 减去标题和边距的高度 */
+            border: 1px solid #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>Web Terminal Controller</h1>
+    <div id="terminal-container"></div>
+
+    <script>
+        // 1. 初始化 Xterm.js 终端
+        const term = new Terminal({
+            cursorBlink: true,
+            theme: {
+                background: '#1e1e1e',
+                foreground: '#d4d4d4',
+            }
+        });
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+        
+        // 将终端附加到 HTML 元素上
+        const container = document.getElementById('terminal-container');
+        term.open(container);
+        
+        // 使终端尺寸适应容器
+        fitAddon.fit();
+        window.addEventListener('resize', () => fitAddon.fit());
+
+        // 2. 建立 WebSocket 连接
+        // 使用 wss:// (加密) 如果你的 FastAPI 服务部署在 HTTPS 环境下
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const wsUrl = `${wsProtocol}://${window.location.host}/ws`;
+        const ws = new WebSocket(wsUrl);
+
+        // --- WebSocket 事件处理 ---
+
+        // 连接成功时
+        ws.onopen = function(event) {
+            term.write('\x1b[32m[Connected to Backend]\x1b[0m\r\n');
+        };
+
+        // 收到来自后端的消息时 (子进程的输出)
+        ws.onmessage = function(event) {
+            // 直接将收到的数据写入 Xterm.js 终端
+            term.write(event.data);
+        };
+
+        // 连接关闭时
+        ws.onclose = function(event) {
+            term.write('\r\n\x1b[31m[Disconnected from Backend]\x1b[0m');
+        };
+
+        // 发生错误时
+        ws.onerror = function(event) {
+            term.write('\r\n\x1b[31m[WebSocket Error]\x1b[0m');
+            console.error('WebSocket Error:', event);
+        };
+
+        // --- Xterm.js 事件处理 ---
+
+        // 当用户在终端里输入任何内容时 (包括按键、粘贴等)
+        term.onData(data => {
+            // 将用户的输入通过 WebSocket 发送给后端
+            ws.send(data);
+        });
+
+        term.focus();
+
+    </script>
+</body>
+</html>
