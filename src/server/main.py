@@ -20,12 +20,12 @@ import os
 import re
 import subprocess
 import uuid
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from fastapi import FastAPI, BackgroundTasks, Request
 from starlette.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 # 导入现有的业务逻辑模块
 from src.server.workers.deploy_coordinator import DeployCoordinator

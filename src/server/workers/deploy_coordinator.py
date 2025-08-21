@@ -36,7 +36,7 @@ try:
 except ImportError:
     AssetClient = None
 
-from .cert_utils import copy_ssl_certificates, overlay_lightnode_certificates
+from .cert_utils import overlay_lightnode_certificates
 from .lightnode_builder import LightnodeBuilder
 
 # 导入控制台部署服务

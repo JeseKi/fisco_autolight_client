@@ -10,7 +10,6 @@ import shutil
 from pathlib import Path
 import re
 import subprocess
-import os
 from typing import Optional
 from loguru import logger
 from src.server.service.paths import get_console_dir, get_build_chain_layout_paths

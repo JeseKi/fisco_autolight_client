@@ -9,7 +9,6 @@
 
 import os
 import tempfile
-from types import SimpleNamespace
 
 from workers.lightnode_builder import LightnodeBuilder
 
