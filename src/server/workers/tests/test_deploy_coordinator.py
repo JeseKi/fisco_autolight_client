@@ -13,7 +13,7 @@ import os.path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from deploy_coordinator import DeployCoordinator
-from src.server.config import API_BASE_URL
+from config import API_BASE_URL
 
 
 def test_deploy_coordinator():

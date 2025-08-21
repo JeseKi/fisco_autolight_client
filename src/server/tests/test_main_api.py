@@ -13,7 +13,7 @@ import tempfile
 
 from fastapi.testclient import TestClient
 
-import src.server.main as main_mod
+import main as main_mod
 
 
 def test_deploy_check_and_overwrite(monkeypatch):

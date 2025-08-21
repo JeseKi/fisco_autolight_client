@@ -17,20 +17,17 @@ from pathlib import Path
 def get_node_dir() -> Path:
     """获取节点部署的根目录。
     
-    该路径基于 main.py 中定义的 `NODE_DIR`。
+    该路径基于当前工作目录 (cwd)。
     """
-    # 从当前文件 (__file__) 出发，向上回溯到 src/server/ 目录，然后拼接 node
-    # __file__ is src/server/service/paths.py
-    # .parent is src/server/service/
-    # .parent.parent is src/server/
-    # / "node" is src/server/node
-    server_dir = Path(__file__).parent.parent
-    return server_dir / "node"
+    # 从当前工作目录出发，拼接 node
+    # cwd is the directory from which the script is run
+    # / "node" is the relative path from cwd to the node directory
+    return Path.cwd() / "node"
 
 def get_console_dir() -> Path:
     """获取控制台的安装目录。"""
     # 控制台位于 node 目录平级的 console 目录
-    # 比如 src/server/console
+    # 比如 console
     return get_node_dir().parent / "console"
 
 

@@ -12,8 +12,8 @@ import re
 import subprocess
 from typing import Optional
 from loguru import logger
-from src.server.service.paths import get_console_dir, get_build_chain_layout_paths
-from src.server.cert_client import CertificateClient
+from service.paths import get_console_dir, get_build_chain_layout_paths
+from cert_client import CertificateClient
 
 
 def _get_console_dir() -> Path:
@@ -42,13 +42,10 @@ def download_console_if_not_exists(console_version: str = "latest") -> None:
     
     logger.info(f"控制台目录不存在，开始下载控制台到: {console_dir.parent}")
     
-    # 从当前文件 (__file__) 出发，找到 download_console.sh 脚本的路径
-    # __file__ is src/server/service/console_deploy.py
-    # .parent is src/server/service/
-    # .parent.parent is src/server/
+    # 从当前工作目录出发，找到 download_console.sh 脚本的路径
+    # cwd is src/server when running python main.py directly
     # / "download_console.sh" is src/server/download_console.sh
-    script_dir = Path(__file__).parent.parent
-    script_path = script_dir / "download_console.sh"
+    script_path = Path.cwd() / "download_console.sh"
     
     if not script_path.exists():
         raise RuntimeError(f"下载脚本不存在: {script_path}")

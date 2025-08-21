@@ -23,16 +23,16 @@ from typing import Callable, Tuple, Optional
 import os
 
 # 导入配置
-from src.server.config import API_BASE_URL
+from config import API_BASE_URL
 
 # 动态导入客户端模块，避免在模块缺失时直接崩溃
 try:
-    from src.server.cert_client import CertificateClient
+    from cert_client import CertificateClient
 except ImportError:
     CertificateClient = None
 
 try:
-    from src.server.asset_client import AssetClient
+    from asset_client import AssetClient
 except ImportError:
     AssetClient = None
 
@@ -40,7 +40,7 @@ from .cert_utils import overlay_lightnode_certificates
 from .lightnode_builder import LightnodeBuilder
 
 # 导入控制台部署服务
-from src.server.service.console_deploy import deploy_console
+from service.console_deploy import deploy_console
 
 
 class DeployCoordinator:

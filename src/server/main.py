@@ -21,16 +21,19 @@ import re
 import subprocess
 import uuid
 from typing import Dict, Optional
+from pathlib import Path
 
 from fastapi import FastAPI, BackgroundTasks, Request
-from starlette.responses import StreamingResponse
+from starlette.responses import StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 # 导入现有的业务逻辑模块
-from src.server.workers.deploy_coordinator import DeployCoordinator
-from src.server.workers.schemas import NodeStatus
-from src.server.config import API_BASE_URL
+from workers.deploy_coordinator import DeployCoordinator
+from workers.schemas import NodeStatus
+from config import API_BASE_URL
+from service.paths import get_node_dir
 
 # --- 应用和状态管理 ---
 
@@ -49,7 +52,7 @@ app.add_middleware(
 )
 
 # 定义固定的节点目录
-NODE_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), "node")
+NODE_DIR = str(get_node_dir())
 
 class AppState:
     """管理应用程序的全局状态"""
@@ -61,7 +64,7 @@ class AppState:
         self.load_last_session()
 
     def _state_path(self) -> str:
-        return os.path.join(os.path.dirname(__file__), "last_session.json")
+        return str(Path.cwd() / "last_session.json")
 
     def load_last_session(self):
         try:
@@ -278,6 +281,13 @@ def get_session():
         "deployed_node_id": state.deployed_node_id,
     }
 
+# 挂载前端静态文件
+frontend_dist_dir = Path.cwd() / "dist"
+if frontend_dist_dir.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_dist_dir), html=True), name="frontend")
+else:
+    print(f"[WARN] 前端静态文件目录不存在: {frontend_dist_dir}")
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=1234, reload=True)
+    uvicorn.run(app, host="localhost", port=1234, reload=False)
