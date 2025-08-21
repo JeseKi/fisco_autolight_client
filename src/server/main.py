@@ -159,10 +159,6 @@ def run_deployment_task():
     except Exception as e:
         progress_callback(f"[ERROR] 部署过程中发生意外错误: {e}")
 
-@app.get("/", summary="根路径")
-def read_root():
-    return {"message": "FISCO BCOS 轻节点管理后端已启动"}
-
 @app.post("/api/deploy", response_model=ApiResponse, summary="一键部署新节点")
 async def deploy_node(background_tasks: BackgroundTasks):
     output_dir = state.current_node_dir
