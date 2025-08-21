@@ -80,9 +80,11 @@ class AppState:
 
     def save_session(self):
         try:
+            with open(Path.cwd() / "node" / "lightnode" / "conf" / "node.nodeid", "r") as f:
+                node_id = f.readline()
             state = {
                 "current_node_dir": self.current_node_dir,
-                "deployed_node_id": self.deployed_node_id,
+                "deployed_node_id": node_id,
                 "node_pid": self.node_pid,
             }
             with open(self._state_path(), "w", encoding="utf-8") as f:
@@ -266,13 +268,13 @@ def get_status():
     # 使用 PID 检查节点是否在运行
     is_running = is_pid_alive(state.node_pid)
     if is_running:
-        return NodeStatus(block_height=12345, node_id=state.deployed_node_id or "mock_node_id_running_xxxx", p2p_connection_count=5)
+        return NodeStatus(block_height=-1, node_id=state.deployed_node_id or "请先启动/部署节点", p2p_connection_count=0, running=True)
     else:
         # 如果 PID 无效，则清理它
         if state.node_pid is not None:
             state.node_pid = None
             state.save_session()
-        return NodeStatus(block_height=-1, node_id=state.deployed_node_id or "mock_node_id_stopped_yyyy", p2p_connection_count=0)
+        return NodeStatus(block_height=-1, node_id=state.deployed_node_id or "请先启动/部署节点", p2p_connection_count=0, running=False)
 
 @app.get("/api/session", summary="获取当前会话信息")
 def get_session():
@@ -290,4 +292,15 @@ else:
 
 if __name__ == "__main__":
     import uvicorn
+    import webbrowser
+    import threading
+    import time
+
+    def open_browser():
+        # 等待服务启动（简单等待几秒）
+        time.sleep(2)
+        webbrowser.open("http://localhost:1234")
+
+    # 启动一个线程用于打开浏览器
+    threading.Thread(target=open_browser, daemon=True).start()
     uvicorn.run(app, host="localhost", port=1234, reload=False)

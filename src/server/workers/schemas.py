@@ -24,5 +24,4 @@ class NodeStatus(BaseModel):
     block_height: int
     node_id: str
     p2p_connection_count: int
-
-
+    running: bool

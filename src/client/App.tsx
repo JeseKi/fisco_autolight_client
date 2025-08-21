@@ -12,6 +12,7 @@ interface NodeStatus {
   block_height: number;
   node_id: string;
   p2p_connection_count: number;
+  running: boolean;
 }
 
 function App() {
@@ -93,8 +94,7 @@ function App() {
     try {
       const response = await axios.get<NodeStatus>(`${API_URL}/api/status`);
       setStatus(response.data);
-      // block_height > 0 认为是在运行中 (0是创世块，-1是错误)
-      setIsNodeRunning(response.data.block_height > 0);
+      setIsNodeRunning(response.data.running);
     } catch (error) {
       setStatus(null);
       setIsNodeRunning(false);
@@ -178,9 +178,9 @@ function App() {
               <Card title="节点状态 (Mock)">
                 <Space direction="vertical" className="w-full">
                   <div className="flex justify-between"><Text strong>连接状态:</Text> <Text>{status ? (isNodeRunning ? '🟢 运行中' : '🔴 已断开') : '⚪ 未知'}</Text></div>
-                  <div className="flex justify-between"><Text strong>当前区块高度:</Text> <Text>{status?.block_height ?? 'N/A'}</Text></div>
+                  {/*<div className="flex justify-between"><Text strong>当前区块高度:</Text> <Text>{status?.block_height ?? 'N/A'}</Text></div>*/}
                   <div className="flex justify-between"><Text strong>本节点ID:</Text> <Text className="break-all">{status?.node_id ?? 'N/A'}</Text></div>
-                  <div className="flex justify-between"><Text strong>P2P连接数:</Text> <Text>{status?.p2p_connection_count ?? 'N/A'}</Text></div>
+                  {/*<div className="flex justify-between"><Text strong>P2P连接数:</Text> <Text>{status?.p2p_connection_count ?? 'N/A'}</Text></div>*/}
                 </Space>
               </Card>
             </div>
