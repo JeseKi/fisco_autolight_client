@@ -1,0 +1,6 @@
+pip-tools
+pydantic
+requests
+cryptography
+pyinstaller
+fastapi[all]
