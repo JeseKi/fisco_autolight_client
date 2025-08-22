@@ -10,28 +10,28 @@ router = APIRouter()
 
 
 def _get_console_start_command() -> str:
-    """Build the command to start the FISCO console with unbuffered IO."""
-    # Resolve to the server root directory (src/server)
+    """构建启动 FISCO 控制台的命令，并启用无缓冲 IO。"""
+    # 解析到服务器根目录 (src/server)
     server_root = Path(__file__).resolve().parents[1]
     start_script = server_root / "console" / "start.sh"
-    # Use stdbuf to ensure unbuffered I/O for interactive experience
-    # Quote path via str; subprocess/pexpect will handle spaces properly when passed as a single string to the shell
+    # 使用 stdbuf 确保交互体验的无缓冲 I/O
+    # 通过 str 引用路径；当作为单个字符串传递给 shell 时，subprocess/pexpect 会正确处理空格
     return f"stdbuf -i0 -o0 -e0 bash {str(start_script)}"
 
 
 @router.websocket("/ws/console")
 async def console_websocket(websocket: WebSocket) -> None:
-    """Expose a websocket that bridges to the FISCO console process.
+    """暴露一个 websocket，用于桥接到 FISCO 控制台进程。
 
-    It streams process output to the client and forwards client input to the process.
+    它将进程的输出流式传输到客户端，并将客户端的输入转发到进程。
     """
     await websocket.accept()
 
-    # Import pexpect lazily to avoid hard import dependency at module import time
+    # 懒加载 pexpect 以避免在模块导入时产生硬性依赖
     try:
         import pexpect  # type: ignore
     except Exception as exc:  # pragma: no cover
-        await websocket.send_text(f"[ERROR] pexpect is required on server: {exc}\r\n")
+        await websocket.send_text(f"[ERROR] 服务器需要 pexpect: {exc}\r\n")
         await websocket.close()
         return
 
@@ -52,12 +52,12 @@ async def console_websocket(websocket: WebSocket) -> None:
                     if output:
                         await websocket.send_text(output)
 
-                    # Detect console ready prompt once and send a sample command
+                    # 一旦检测到控制台就绪提示符，发送一个示例命令
                     if not init_done and "[group0]: /apps>" in output:
                         init_done = True
                         child.send("getBlockNumber\n")
                 except Exception as e:  # noqa: BLE001
-                    # TIMEOUT means no output available; keep looping
+                    # TIMEOUT 意味着没有可用的输出；继续循环
                     from pexpect.exceptions import TIMEOUT, EOF  # type: ignore
 
                     if isinstance(e, TIMEOUT):
@@ -65,29 +65,29 @@ async def console_websocket(websocket: WebSocket) -> None:
                         continue
                     if isinstance(e, EOF):
                         break
-                    # Unknown error: break the loop after notifying client
+                    # 未知错误：通知客户端后跳出循环
                     try:
                         await websocket.send_text(f"\r\n[ERROR] {e}\r\n")
                     except Exception:
                         pass
                     break
 
-            # Ensure websocket is closed when process exits
+            # 确保在进程退出时关闭 websocket
             try:
                 await websocket.close()
             except Exception:
                 pass
 
-        forward_task = asyncio.create_task(forward_output())
+        _ = asyncio.create_task(forward_output())
 
-        # Receive input from client and forward to child process
+        # 接收来自客户端的输入并转发到子进程
         while True:
             data = await websocket.receive_text()
             child.send(data)
 
     except Exception as e:  # noqa: BLE001
         try:
-            await websocket.send_text(f"\r\n[ERROR] WebSocket error: {e}\r\n")
+            await websocket.send_text(f"\r\n[ERROR] WebSocket 错误: {e}\r\n")
         except Exception:
             pass
         try:
