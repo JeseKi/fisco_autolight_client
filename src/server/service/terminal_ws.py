@@ -11,9 +11,7 @@ router = APIRouter()
 
 def _get_console_start_command() -> str:
     """构建启动 FISCO 控制台的命令，并启用无缓冲 IO。"""
-    # 解析到服务器根目录 (src/server)
-    server_root = Path(__file__).resolve().parents[1]
-    start_script = server_root / "console" / "start.sh"
+    start_script = Path.cwd() / "console" / "start.sh"
     # 使用 stdbuf 确保交互体验的无缓冲 I/O
     # 通过 str 引用路径；当作为单个字符串传递给 shell 时，subprocess/pexpect 会正确处理空格
     return f"stdbuf -i0 -o0 -e0 bash {str(start_script)}"

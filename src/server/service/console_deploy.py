@@ -214,7 +214,7 @@ def _reissue_console_certificates(console_conf_dir: Path, api_url: str, node_id:
 def _get_console_start_command() -> str:
     """构建启动 FISCO 控制台的命令（开启无缓冲 IO）。"""
     # 解析到服务根目录 (src/server)
-    server_root = Path(__file__).resolve().parents[1]
+    server_root = Path.cwd()
     start_script = server_root / "console" / "start.sh"
     # 使用 stdbuf 确保交互式输出不被缓冲
     return f"stdbuf -i0 -o0 -e0 bash {str(start_script)}"

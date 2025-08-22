@@ -7,7 +7,7 @@
 """
 
 # API服务器的基础URL
-API_BASE_URL = "http://localhost:8000/v1"
+API_BASE_URL = "https://web3.kispace.cc/v1"
 
 # 默认输出目录名称
 DEFAULT_OUTPUT_DIR = "node"
