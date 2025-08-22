@@ -14,6 +14,7 @@ interface NodeStatus {
   node_id: string;
   p2p_connection_count: number;
   running: boolean;
+  can_start_node: boolean;
 }
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
   const [status, setStatus] = useState<NodeStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isNodeRunning, setIsNodeRunning] = useState(false);
+  const [canStartNode, setCanStartNode] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
 
   const logContainerRef = useRef<any>(null);
@@ -96,6 +98,7 @@ function App() {
       const response = await axios.get<NodeStatus>(`${API_URL}/api/status`);
       setStatus(response.data);
       setIsNodeRunning(response.data.running);
+      setCanStartNode(response.data.can_start_node);
     } catch (error) {
       setStatus(null);
       setIsNodeRunning(false);
@@ -167,7 +170,7 @@ function App() {
                     <Button type="primary" onClick={handleDeploy} disabled={isNodeRunning}>
                       一键部署
                     </Button>
-                    <Button type="primary" ghost onClick={handleStart} disabled={isNodeRunning}>
+                    <Button type="primary" ghost onClick={handleStart} disabled={isNodeRunning || !canStartNode}>
                       启动节点
                     </Button>
                     <Button danger onClick={handleStop} disabled={!isNodeRunning}>

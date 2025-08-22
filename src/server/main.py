@@ -177,7 +177,10 @@ def run_deployment_task():
     try:
         state.deployed_node_id = node_id
         progress_callback(f"开始部署节点, ID: {node_id}")
-        coordinator = DeployCoordinator(progress_callback=progress_callback)
+        coordinator = DeployCoordinator(
+            progress_callback=progress_callback,
+            pid_callback=lambda pid: setattr(state, "node_pid", pid),
+        )
         success, message = coordinator.execute_deployment(
             api_url=API_BASE_URL,
             output_dir=output_dir,
@@ -294,21 +297,26 @@ async def stop_node():
 @app.get("/api/status", response_model=NodeStatus, summary="获取节点状态(Mock)")
 def get_status():
     # 检查节点是否已部署
-    if not is_node_deployed(state.current_node_dir):
-        return NodeStatus(block_height=-1, node_id="请先部署节点", p2p_connection_count=0, running=False)
+    node_dir = state.current_node_dir
+    lightnode_dir = os.path.join(node_dir, "lightnode")
+    start_sh = os.path.join(lightnode_dir, "start.sh")
+    deployed = is_node_deployed(node_dir)
+    can_start = deployed and os.path.exists(start_sh)
+    if not deployed:
+        return NodeStatus(block_height=-1, node_id="请先部署节点", p2p_connection_count=0, running=False, can_start_node=False)
     
     # 使用 PID 检查节点是否在运行
     is_running = is_pid_alive(state.node_pid)
     if is_running:
         node_id = state.deployed_node_id or "请先启动/部署节点"
-        return NodeStatus(block_height=-1, node_id=node_id, p2p_connection_count=0, running=True)
+        return NodeStatus(block_height=-1, node_id=node_id, p2p_connection_count=0, running=True, can_start_node=False)
     else:
         # 如果 PID 无效，则清理它
         if state.node_pid is not None:
             state.node_pid = None
             state.save_session()
         node_id = state.deployed_node_id or "请先启动/部署节点"
-        return NodeStatus(block_height=-1, node_id=node_id, p2p_connection_count=0, running=False)
+        return NodeStatus(block_height=-1, node_id=node_id, p2p_connection_count=0, running=False, can_start_node=can_start)
 
 @app.get("/api/session", summary="获取当前会话信息")
 def get_session():

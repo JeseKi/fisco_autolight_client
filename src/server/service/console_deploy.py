@@ -131,6 +131,13 @@ def deploy_console(rpc_port: int = 20200, api_url: Optional[str] = None, node_id
         logger.info("重新签发控制台SDK证书...")
         _reissue_console_certificates(console_paths["conf"], api_url, node_id)
     
+    # 5. 部署完成后，自动执行一次合约调用：call Counter increment
+    try:
+        _execute_console_command_once("call Counter increment")
+    except Exception as e:  # noqa: BLE001
+        # 不阻塞部署流程，只记录错误
+        logger.error(f"部署后自动执行命令失败: {e}")
+
     logger.info("控制台部署完成")
 
 def _update_console_config_port(config_path: Path, rpc_port: int) -> None:
@@ -202,3 +209,61 @@ def _reissue_console_certificates(console_conf_dir: Path, api_url: str, node_id:
     except Exception as e:
         logger.error(f"重新签发控制台SDK证书时发生异常: {str(e)}")
         raise RuntimeError(f"重新签发控制台SDK证书时发生异常: {str(e)}")
+
+
+def _get_console_start_command() -> str:
+    """构建启动 FISCO 控制台的命令（开启无缓冲 IO）。"""
+    # 解析到服务根目录 (src/server)
+    server_root = Path(__file__).resolve().parents[1]
+    start_script = server_root / "console" / "start.sh"
+    # 使用 stdbuf 确保交互式输出不被缓冲
+    return f"stdbuf -i0 -o0 -e0 bash {str(start_script)}"
+
+
+def _execute_console_command_once(command: str, ready_prompt: str = "[group0]: /apps> ", timeout: int = 60) -> None:
+    """启动一次控制台、等待就绪提示符后发送一条命令并退出。
+
+    该行为只在部署阶段触发一次，用于自动调用示例合约方法。
+    出错时记录日志，不抛出致命异常以免影响整体部署流程。
+    """
+    try:
+        # 延迟导入，避免在未使用该功能时引入硬依赖
+        import pexpect  # type: ignore
+
+        cmd = _get_console_start_command()
+        child = pexpect.spawn(cmd, encoding="utf-8", dimensions=(100, 500))
+
+        # 等待控制台就绪提示符（优先精确匹配；失败则退回到正则匹配，允许可选空格）
+        try:
+            child.expect_exact(ready_prompt, timeout=timeout)
+        except Exception:
+            import re as _re
+            child.expect(_re.compile(r"\[group0\]: /apps> ?"), timeout=timeout)
+
+        # 发送目标命令
+        logger.info(f"即将自动执行控制台命令: {command}")
+        child.sendline(command)
+
+        # 等待命令执行完毕并回到提示符，收集输出
+        try:
+            child.expect_exact(ready_prompt, timeout=timeout)
+        except Exception:
+            import re as _re
+            child.expect(_re.compile(r"\[group0\]: /apps> ?"), timeout=timeout)
+        output = child.before or ""
+        if output.strip():
+            logger.info(f"自动命令输出:\n{output}")
+        else:
+            logger.info("自动命令已执行，无可记录输出或输出为空。")
+
+        # 退出控制台
+        child.sendline("quit")
+        try:
+            child.expect(pexpect.EOF, timeout=10)
+        except Exception:
+            # 如果未能正常 EOF，也尝试强制关闭
+            child.close(force=True)
+
+    except Exception as e:  # noqa: BLE001
+        # 仅记录错误，不向上抛出
+        logger.error(f"自动执行控制台命令时出错: {e}")

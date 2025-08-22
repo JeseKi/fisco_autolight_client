@@ -25,3 +25,4 @@ class NodeStatus(BaseModel):
     node_id: str
     p2p_connection_count: int
     running: bool
+    can_start_node: bool

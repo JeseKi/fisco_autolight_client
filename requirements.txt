@@ -85,8 +85,12 @@ packaging==25.0
     #   build
     #   pyinstaller
     #   pyinstaller-hooks-contrib
+pexpect==4.9.0
+    # via -r requirements.in
 pip-tools==7.5.0
     # via -r requirements.in
+ptyprocess==0.7.0
+    # via pexpect
 pycparser==2.22
     # via cffi
 pydantic[email]==2.11.7
