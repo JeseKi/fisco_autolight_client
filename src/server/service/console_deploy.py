@@ -131,7 +131,13 @@ def deploy_console(rpc_port: int = 20200, api_url: Optional[str] = None, node_id
         logger.info("重新签发控制台SDK证书...")
         _reissue_console_certificates(console_paths["conf"], api_url, node_id)
     
-    # 5. 部署完成后，自动执行一次合约调用：call Counter increment
+    # 5. 修正控制台配置中的网络 peers 为 ["127.0.0.1:20204"]
+    try:
+        _update_console_network_peers(console_paths["config"], ["127.0.0.1:20204"])
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"更新控制台配置 peers 失败: {e}")
+    
+    # 6. 部署完成后，自动执行一次合约调用：call Counter increment
     try:
         _execute_console_command_once("call Counter increment")
     except Exception as e:  # noqa: BLE001
@@ -162,6 +168,35 @@ def _update_console_config_port(config_path: Path, rpc_port: int) -> None:
         logger.error(f"更新控制台配置文件端口时出错: {str(e)}")
         raise RuntimeError(f"更新控制台配置文件端口时出错: {str(e)}")
 
+
+def _update_console_network_peers(config_path: Path, peers: list[str]) -> None:
+    """用简单的字符串替换 peers 数组。
+
+    将 'peers=["127.0.0.1:20200", "127.0.0.1:20201"]'
+    直接替换为指定的 peers 列表（如 ["127.0.0.1:20204"]）。
+    """
+    try:
+        content = config_path.read_text(encoding="utf-8")
+        desired = ", ".join(f'"{p}"' for p in peers)
+        # 常见两种格式：无空格和带空格
+        src_variants = [
+            'peers=["127.0.0.1:20200", "127.0.0.1:20201"]',
+            'peers = ["127.0.0.1:20200", "127.0.0.1:20201"]',
+        ]
+        dst_no_space = f'peers=[{desired}]'
+        dst_with_space = f'peers = [{desired}]'
+
+        new_content = content
+        new_content = new_content.replace(src_variants[0], dst_no_space)
+        new_content = new_content.replace(src_variants[1], dst_with_space)
+        if new_content != content:
+            config_path.write_text(new_content, encoding="utf-8")
+            logger.info(f"已将 peers 从默认值替换为: {peers}")
+        else:
+            logger.info("未发现默认 peers；无需替换。")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"更新控制台配置 peers 时出错: {str(e)}")
+        raise
 
 def _copy_all_sdk_files(node_paths: dict[str, Path], console_paths: dict[str, Path]) -> None:
     """拷贝节点SDK目录下所有文件到控制台配置目录。"""
