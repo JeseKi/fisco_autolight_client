@@ -25,6 +25,7 @@ import re
 import stat
 import subprocess
 from loguru import logger
+from pathlib import Path
 
 # 导入配置
 from config import API_BASE_URL
@@ -113,11 +114,27 @@ class DeployCoordinator:
             if AssetClient is None:
                 return False, "资源客户端模块未正确导入"
             asset_client = AssetClient(api_base_url=api_url)
-            return asset_client.download_build_script(output_dir)
+            success, message = asset_client.download_build_script(output_dir)
+            if not success:
+                # 如果从云端下载失败，则尝试从本地复制
+                local_build_chain_path = Path.cwd() / "build_chain.sh"
+                target_path = Path(output_dir) / "build_chain.sh"
+                try:
+                    import shutil
+                    if local_build_chain_path.exists():
+                        shutil.copy2(local_build_chain_path, target_path)
+                        # 确保脚本具有可执行权限
+                        target_path.chmod(0o755)
+                        return True, f"build_chain.sh 从本地复制成功: {target_path}"
+                    else:
+                        return False, f"本地 build_chain.sh 不存在: {local_build_chain_path}"
+                except Exception as e:
+                    return False, f"从本地复制 build_chain.sh 失败: {e}"
+            return success, message
 
-        success, message = self._run_step("[2/9] 正在下载 build_chain.sh...", script_step)
+        success, message = self._run_step("[2/9] 正在下载/复制 build_chain.sh...", script_step)
         if not success:
-            return False, f"脚本下载失败: {message}"
+            return False, f"脚本下载/复制失败: {message}"
         self._report_progress(f"[SUCCESS] {message}")
 
         # 步骤 3/9: 直接下载二进制（fisco-bcos 与 fisco-bcos-lightnode）
