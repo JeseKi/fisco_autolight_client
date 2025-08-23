@@ -71,6 +71,27 @@ set -e  # 遇到错误时退出
 
 echo "开始运行..."
 
+# 检查是否以 root 权限运行，如果不是则请求权限
+if [ "$EUID" -ne 0 ]; then
+    echo "需要 root 权限来安装依赖包"
+    sudo -v  # 请求 sudo 权限
+    if [ $? -ne 0 ]; then
+        echo "未能获取 root 权限，退出"
+        exit 1
+    fi
+fi
+
+# 安装必要的依赖包
+echo "正在安装必要的依赖包..."
+sudo apt update
+sudo apt install -y curl openssl wget default-jdk
+if [ $? -eq 0 ]; then
+    echo "依赖包安装成功"
+else
+    echo "依赖包安装失败"
+    exit 1
+fi
+
 # 检查并复制 .fisco 目录
 echo "1. 检查 .fisco 配置目录..."
 if [ ! -d "$HOME/.fisco" ]; then
